@@ -1,0 +1,28 @@
+{
+  "name": "kafkajsteste",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "src/main.ts",
+  "scripts": {
+    "start": "node --import tsx src/main.ts",
+    "dev": "node --no-warnings --env-file .env --import tsx --watch src/main.ts",
+    "dev:nowatch": "node --env-file .env --import tsx src/main.ts",
+    "lint": "biome lint --apply ./src",
+    "format": "biome format --write ./src",
+    "check": "biome check --apply ./src"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@kafkajs/confluent-schema-registry": "^3.3.0",
+    "avsc": "^5.7.7",
+    "kafkajs": "^2.2.4",
+    "kafkajs-snappy": "^1.1.0",
+    "tsx": "^4.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.25"
+  }
+}
