@@ -8,9 +8,6 @@ dependencies:
   '@kafkajs/confluent-schema-registry':
     specifier: ^3.3.0
     version: 3.3.0
-  avsc:
-    specifier: ^5.7.7
-    version: 5.7.7
   kafkajs:
     specifier: ^2.2.4
     version: 2.2.4

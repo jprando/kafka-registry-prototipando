@@ -17,7 +17,6 @@
   "license": "ISC",
   "dependencies": {
     "@kafkajs/confluent-schema-registry": "^3.3.0",
-    "avsc": "^5.7.7",
     "kafkajs": "^2.2.4",
     "kafkajs-snappy": "^1.1.0",
     "tsx": "^4.7.1"
