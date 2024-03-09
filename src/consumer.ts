@@ -1,6 +1,7 @@
 import { Consumer, Kafka } from "kafkajs";
 import registry from "./registry";
 import topic from "./topic";
+import { somarQuantidades } from "./utils";
 
 async function receberMensagem(consumer: Consumer) {
   (consumer as any).quantidade = 0;
@@ -24,32 +25,36 @@ async function receberMensagem(consumer: Consumer) {
     if (e instanceof Error) {
       console.error("#ERRO", `${e.name}:`, e.message);
     }
-    consumer.stop();
-    consumer.disconnect();
-    await new Promise((resolve) => setTimeout(resolve, 2500));
   }
 }
 
 export function executarReceberMensagem(broker: Kafka) {
-  const consumers = Array.from({ length: 3 }, () =>
-    broker.consumer({ groupId: "teste-group-ABC" }),
-  );
-  for (const consumer of consumers) {
-    process.on("SIGINT", consumer.disconnect);
-    process.on("SIGILL", consumer.disconnect);
-    process.on("SIGTERM", consumer.disconnect);
+  const consumers = Array.from({ length: 3 }, () => {
+    const consumer = broker.consumer({ groupId: "teste-group-ABC" });
     receberMensagem(consumer);
-  }
+    return consumer;
+  });
+
   const interval = setInterval(() => {
-    const quantidadeConsumer = consumers.reduce((acc: number, c: any) => {
-      acc += (c as any).quantidade;
-      (c as any).quantidade = 0;
-      return acc;
-    }, 0);
-    process.stdout.write(`#INFO ${quantidadeConsumer} CONSUMER.RUN...\n`);
+    const total = consumers.reduce(somarQuantidades, 0);
+    process.stdout.write(`#INFO ${(total / 5).toFixed(1)} RUN/s...\n`);
   }, 5000);
-  process.on("SIGINT", () => clearInterval(interval));
-  process.on("SIGILL", () => clearInterval(interval));
-  process.on("SIGTERM", () => clearInterval(interval));
+
+  async function finalizar() {
+    clearInterval(interval);
+    setTimeout(process.exit, 10000);
+    await Promise.all(
+      consumers.map(async (consumer) => {
+        await consumer.stop();
+        await consumer.disconnect();
+      }),
+    );
+    process.exit();
+  }
+
+  process.once("SIGINT", finalizar);
+  process.once("SIGILL", finalizar);
+  process.once("SIGTERM", finalizar);
+
   return consumers;
 }

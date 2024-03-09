@@ -2,36 +2,37 @@ import { CompressionTypes, Kafka, Producer, default as kafka } from "kafkajs";
 import SnappyCodec from "kafkajs-snappy";
 import registry from "./registry";
 import topic from "./topic";
+import { somarQuantidades } from "./utils";
 
 kafka.CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
+
+const _tipo = ["temperatura", "humidade", "presenca", "rastreamento-veicular"];
+const controle = new AbortController();
 
 async function enviarMensagem(producer: Producer) {
   (producer as any).quantidade = 0;
   try {
     await producer.connect();
-    let continuar = true;
     producer.on("producer.disconnect", () => {
-      continuar = false;
+      controle.abort();
     });
-    while (continuar) {
+    while (!controle.signal.aborted) {
+      const tipo = _tipo[Number((Math.random() * 3).toFixed(0))];
       const key = await registry.encode(5, {
         dispositivo: (Math.random() * 2000).toFixed(0),
       });
-      const value = await registry.encode(6, {
+      const value = await registry.encode(7, {
+        tipo,
         valor: Math.random(),
       });
+      if (controle.signal.aborted) break;
       await producer.send({
         topic,
         compression: CompressionTypes.Snappy,
         messages: [
           {
             headers: {
-              tipo: [
-                "temperatura",
-                "humidade",
-                "presenca",
-                "rastreamento-veicular",
-              ][Number((Math.random() * 3).toFixed(0))],
+              tipo,
               producao: "nao",
               teste: "sim",
             },
@@ -46,30 +47,36 @@ async function enviarMensagem(producer: Producer) {
     if (e instanceof Error) {
       console.error("#ERRO", `${e.name}:`, e.message);
     }
-    producer.disconnect();
-    await new Promise((resolve) => setTimeout(resolve, 2500));
   }
 }
 
 export function executarEnviarMensagem(broker: Kafka) {
-  const producers = Array.from({ length: 50 }, () => {
+  const producers = Array.from({ length: 400 }, () => {
     const producer = broker.producer();
-    process.on("SIGINT", producer.disconnect);
-    process.on("SIGILL", producer.disconnect);
-    process.on("SIGTERM", producer.disconnect);
     enviarMensagem(producer);
     return producer;
   });
+
   const interval = setInterval(() => {
-    const quantidadeProducer = producers.reduce(
-      (acc: number, p: any) => acc + p.quantidade,
-      0,
-    );
-    process.stdout.write(`#INFO ${quantidadeProducer} PRODUCER.SEND...\n`);
-    producers.forEach((p: any) => (p.quantidade = 0));
+    const total = producers.reduce(somarQuantidades, 0);
+    process.stdout.write(`#INFO ${(total / 5).toFixed(1)} SEND/s...\n`);
   }, 5000);
-  process.on("SIGINT", () => clearInterval(interval));
-  process.on("SIGILL", () => clearInterval(interval));
-  process.on("SIGTERM", () => clearInterval(interval));
+
+  async function finalizar() {
+    clearInterval(interval);
+    controle.abort();
+    setTimeout(process.exit, 10000);
+    await Promise.all(
+      producers.map(async (producer) => {
+        await producer.disconnect();
+      }),
+    );
+    process.exit();
+  }
+
+  process.once("SIGINT", finalizar);
+  process.once("SIGILL", finalizar);
+  process.once("SIGTERM", finalizar);
+
   return producers;
 }

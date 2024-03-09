@@ -8,10 +8,12 @@ console.info({ ehParaExecutar });
 
 switch (ehParaExecutar) {
   case "enviarMensagem":
-    executarEnviarMensagem(broker);
+    const producers = executarEnviarMensagem(broker);
+    console.info(producers.length, "producers criados...");
     break;
   case "receberMensagem":
-    executarReceberMensagem(broker);
+    const consumers = executarReceberMensagem(broker);
+    console.info(consumers.length, "consumers criados...");
     break;
   default:
     console.error("opcao nao conhecida, saindo...");
