@@ -1,4 +1,4 @@
-import assert from "assert";
+import assert from "node:assert";
 import chalk from "chalk";
 import { Kafka } from "kafkajs";
 
@@ -7,7 +7,7 @@ assert(BROKER1, "BROKER1 nao esta configurado");
 assert(BROKER2, "BROKER2 nao esta configurado");
 assert(BROKER3, "BROKER3 nao esta configurado");
 
-const clientId = `teste-${Date.now()}`;
+const clientId = `teste-${process.env.HOSTNAME}-${Date.now()}`;
 
 export default new Kafka({
   clientId,
