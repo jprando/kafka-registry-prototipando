@@ -1,4 +1,5 @@
-import { CompressionTypes, Kafka, Producer, default as kafka } from "kafkajs";
+import type { Kafka, Producer } from "kafkajs";
+import { CompressionTypes, default as kafka } from "kafkajs";
 import SnappyCodec from "kafkajs-snappy";
 import registry from "./registry";
 import topic from "./topic";
@@ -9,8 +10,8 @@ kafka.CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
 const _tipo = ["temperatura", "humidade", "presenca", "rastreamento-veicular"];
 const controle = new AbortController();
 
-async function enviarMensagem(producer: Producer) {
-  (producer as any).quantidade = 0;
+async function enviarMensagem(producer: Producer & { quantidade?: number }) {
+  producer.quantidade = 0;
   try {
     await producer.connect();
     producer.on("producer.disconnect", () => {
@@ -41,7 +42,7 @@ async function enviarMensagem(producer: Producer) {
           },
         ],
       });
-      (producer as any).quantidade += 1;
+      producer.quantidade += 1;
     }
   } catch (e) {
     if (e instanceof Error) {
@@ -69,7 +70,7 @@ export function executarEnviarMensagem(broker: Kafka) {
     await Promise.all(
       producers.map(async (producer) => {
         await producer.disconnect();
-      }),
+      })
     );
     process.exit();
   }

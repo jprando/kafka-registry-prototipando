@@ -1,10 +1,10 @@
-import { Consumer, Kafka } from "kafkajs";
+import type { Consumer, Kafka } from "kafkajs";
 import registry from "./registry";
 import topic from "./topic";
 import { somarQuantidades } from "./utils";
 
-async function receberMensagem(consumer: Consumer) {
-  (consumer as any).quantidade = 0;
+async function receberMensagem(consumer: Consumer & { quantidade?: number }) {
+  consumer.quantidade = 0;
   await consumer.connect();
   await consumer.subscribe({ topic });
   try {
@@ -18,7 +18,8 @@ async function receberMensagem(consumer: Consumer) {
           ? await registry.decode(message.value)
           : undefined;
         const data = { topic, partition, tipo, key, mensagem };
-        (consumer as any).quantidade += 1;
+        // biome-ignore lint/style/noNonNullAssertion: o valor eh inicializado corretamente no inicio dessa funcao
+        consumer.quantidade! += 1;
       },
     });
   } catch (e) {
