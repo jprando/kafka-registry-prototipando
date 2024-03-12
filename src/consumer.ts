@@ -3,8 +3,7 @@ import registry from "./registry";
 import topic from "./topic";
 import { somarQuantidades } from "./utils";
 
-async function receberMensagem(consumer: Consumer & { quantidade?: number }) {
-  consumer.quantidade = 0;
+async function receberMensagem(consumer: Consumer & { quantidade: number }) {
   await consumer.connect();
   await consumer.subscribe({ topic });
   try {
@@ -18,8 +17,7 @@ async function receberMensagem(consumer: Consumer & { quantidade?: number }) {
           ? await registry.decode(message.value)
           : undefined;
         const data = { topic, partition, tipo, key, mensagem };
-        // biome-ignore lint/style/noNonNullAssertion: o valor eh inicializado corretamente no inicio dessa funcao
-        consumer.quantidade! += 1;
+        consumer.quantidade += 1;
       },
     });
   } catch (e) {
@@ -31,7 +29,10 @@ async function receberMensagem(consumer: Consumer & { quantidade?: number }) {
 
 export function executarReceberMensagem(broker: Kafka) {
   const consumers = Array.from({ length: 3 }, () => {
-    const consumer = broker.consumer({ groupId: "teste-group-ABC" });
+    const consumer = broker.consumer({
+      groupId: "teste-group-ABC",
+    }) as Consumer & { quantidade: number };
+    consumer.quantidade = 0;
     receberMensagem(consumer);
     return consumer;
   });

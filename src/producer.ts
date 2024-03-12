@@ -1,7 +1,7 @@
 import type { Kafka, Producer } from "kafkajs";
 import { CompressionTypes, default as kafka } from "kafkajs";
 import SnappyCodec from "kafkajs-snappy";
-import registry from "./registry";
+import registry, { obterSchemaId } from "./registry";
 import topic from "./topic";
 import { somarQuantidades } from "./utils";
 
@@ -10,19 +10,20 @@ kafka.CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
 const _tipo = ["temperatura", "humidade", "presenca", "rastreamento-veicular"];
 const controle = new AbortController();
 
-async function enviarMensagem(producer: Producer & { quantidade?: number }) {
-  producer.quantidade = 0;
+async function enviarMensagem(producer: Producer & { quantidade: number }) {
   try {
     await producer.connect();
     producer.on("producer.disconnect", () => {
       controle.abort();
     });
+    const testeKeyRegistryId = await obterSchemaId("teste-key");
+    const testeValueRegistryId = await obterSchemaId("teste-value");
     while (!controle.signal.aborted) {
       const tipo = _tipo[Number((Math.random() * 3).toFixed(0))];
-      const key = await registry.encode(5, {
+      const key = await registry.encode(testeKeyRegistryId, {
         dispositivo: (Math.random() * 2000).toFixed(0),
       });
-      const value = await registry.encode(7, {
+      const value = await registry.encode(testeValueRegistryId, {
         tipo,
         valor: Math.random(),
       });
@@ -52,8 +53,9 @@ async function enviarMensagem(producer: Producer & { quantidade?: number }) {
 }
 
 export function executarEnviarMensagem(broker: Kafka) {
-  const producers = Array.from({ length: 400 }, () => {
-    const producer = broker.producer();
+  const producers = Array.from({ length: 150 }, () => {
+    const producer = broker.producer() as Producer & { quantidade: number };
+    producer.quantidade = 0;
     enviarMensagem(producer);
     return producer;
   });
@@ -70,7 +72,7 @@ export function executarEnviarMensagem(broker: Kafka) {
     await Promise.all(
       producers.map(async (producer) => {
         await producer.disconnect();
-      })
+      }),
     );
     process.exit();
   }
