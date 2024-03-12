@@ -1,8 +1,8 @@
 import type { Kafka, Producer } from "kafkajs";
 import { CompressionTypes, default as kafka } from "kafkajs";
 import SnappyCodec from "kafkajs-snappy";
+import { topic } from "./app";
 import registry, { obterSchemaId } from "./registry";
-import topic from "./topic";
 import { somarQuantidades } from "./utils";
 
 kafka.CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;

@@ -1,6 +1,6 @@
 import type { Consumer, Kafka } from "kafkajs";
+import { topic } from "./app";
 import registry from "./registry";
-import topic from "./topic";
 import { somarQuantidades } from "./utils";
 
 async function receberMensagem(consumer: Consumer & { quantidade: number }) {
